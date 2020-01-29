@@ -5,8 +5,8 @@ import Bootstrap from "./bootstrap";
 import Sound from 'pixi-sound';
 
 const app = new Application({
-	resolution: 1,
-	forceCanvas: true,
+	// resolution: 1,
+	// forceCanvas: true,
 	antialias: false,
 	resizeTo: window
 });
