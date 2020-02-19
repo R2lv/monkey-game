@@ -3,7 +3,12 @@ export default class Animator {
 		this.sprite = sprite;
 	}
 
+	stop() {
+		this._stopped = true;
+	}
+
 	async animate(data, time) {
+		this._stopped = false;
 		if(data.rotation) {
 			data.rotation = data.rotation * (Math.PI/180);
 		}
@@ -17,7 +22,7 @@ export default class Animator {
 				y: this.sprite.position.y,
 			},
 			alpha: this.sprite.alpha,
-			rotation: this.sprite.rotation * (Math.PI/180),
+			rotation: this.sprite.rotation,
 			startTime: Date.now(),
 			endTime: time + Date.now(),
 		};
@@ -25,6 +30,7 @@ export default class Animator {
 		return new Promise((resolve => {
 			requestAnimationFrame(fn.bind(this));
 			function fn() {
+				if(this._stopped) return;
 				let f;
 				if(initialValues.endTime <= Date.now()) {
 					f = 1;
@@ -52,6 +58,8 @@ export default class Animator {
 				}
 
 				if(data.rotation !== undefined) {
+					// console.log(initialValues.rotation);
+					// console.log(initialValues.rotation + (data.rotation - initialValues.rotation));
 					this.sprite.rotation = initialValues.rotation + (data.rotation - initialValues.rotation) * f;
 				}
 

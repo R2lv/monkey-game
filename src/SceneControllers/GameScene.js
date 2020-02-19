@@ -5,7 +5,15 @@ import Animator from "../lib/Animator";
 export default class GameScene {
 	constructor(app) {
 		this.app = app;
+
+
+		// this.scale = this.app.dimensions.isPortrait ? new Point(0.6,0.6) : new Point(0.5,0.5);
 		this.scale = new Point(0.6,0.6);
+		if(!this.app.dimensions.isPortrait) {
+			this.scale.x/=this.app.dimensions.width/this.app.dimensions.height;
+			this.scale.y/=this.app.dimensions.width/this.app.dimensions.height;
+		}
+
 		this.container = new Container();
 		this.init();
 	}
@@ -17,11 +25,11 @@ export default class GameScene {
 	init() {
 		this.resetWrongAnswers();
 
-		this.app.dimensions = this.app.renderer;
 		this.ground = new Sprite(this.app.loader.resources["ground"].texture);
 		this.ground.position.set(this.app.dimensions.width/2, this.app.dimensions.height-50);
 		this.ground.anchor.set(0.5,1);
 		this.ground.scale = this.scale;
+		this.ground.width = this.app.dimensions.width;
 
 		this.left_grass = new Sprite(this.app.loader.resources["grass_left"].texture);
 		this.left_grass.position.set(-200, this.app.dimensions.height+250);
@@ -44,6 +52,7 @@ export default class GameScene {
 		this.sky.position.set(this.app.dimensions.width/2, 0);
 		this.sky.scale = this.scale;
 		this.sky.anchor.set(0.5,0);
+		this.sky.width = this.app.dimensions.width;
 
 		this.back_grass_left = new Sprite(this.app.loader.resources["back_grass_left"].texture);
 		this.back_grass_left.position.set(-200, this.app.dimensions.height-20);
@@ -87,10 +96,11 @@ export default class GameScene {
 		this.bg_gradient.position.set(this.app.dimensions.width / 2, -400);
 		this.bg_gradient.anchor.set(0.5,0);
 		this.bg_gradient.scale.set(0.8,0.8);
+		this.bg_gradient.width = this.app.dimensions.width;
 
 		this.tree1 = new Sprite(this.app.loader.resources["tree1"].texture);
 		this.tree1.scale = this.scale;
-		this.tree1.position.set(-20, this.app.dimensions.height - this.tree1.height -170);
+		this.tree1.position.set(this.app.dimensions.width/2 - this.tree1.width/2 - 200, this.app.dimensions.height - this.tree1.height - 170);
 
 		this.tree2 = new Sprite(this.app.loader.resources["tree2"].texture);
 		this.tree2.scale = this.scale;
@@ -109,8 +119,8 @@ export default class GameScene {
 			stroke: 0xFFFFFF,
 			strokeThickness: 7
 		});
-		this.quit_btn.scale.set(0.8,0.8);
-		this.quit_btn.position.set(this.app.dimensions.width - this.quit_btn.width -30, 50);
+		this.quit_btn.scale = this.scale;
+		this.quit_btn.position.set(this.app.dimensions.width - this.quit_btn.width -30, 20);
 
 		this.score_text = Generator.generate(this.app.loader.resources["score"].texture, "0", {
 			fontSize: 60,
@@ -118,8 +128,8 @@ export default class GameScene {
 		});
 		this.score_text._txt.position.set(this.score_text.width-30, this.score_text.height/2);
 		this.score_text._txt.anchor.set(1,0.5);
-		this.score_text.scale.set(0.8,0.8);
-		this.score_text.position.set(30, 40);
+		this.score_text.scale = this.scale;
+		this.score_text.position.set(30, 20);
 
 		let score_title = new Text("Score", {
 			fontSize: 60,
@@ -135,35 +145,66 @@ export default class GameScene {
 		this.answer_slot1.anchor.set(0.5,0.5);
 		this.answer_slot1.position.set(this.tree1.getLocalBounds().width/2,370);
 		this.answer_slot1.scale.set(0,0);
+
+		this.answer_slot1.monkey_fail = new Sprite(this.app.loader.resources['monkey_fail'].texture);
+		this.answer_slot1.monkey_fail.anchor.set(0,1);
+		this.answer_slot1.monkey_fail.scale.set(0,0);
+		this.answer_slot1.monkey_fail.position.set(this.answer_slot1.position.x+100,this.answer_slot1.position.y-100);
+
+		this.tree1.addChild(this.answer_slot1.monkey_fail);
 		this.tree1.addChild(this.answer_slot1);
+
+
 
 		this.answer_slot2 = new Sprite(Texture.EMPTY);
 		this.answer_slot2.anchor.set(0.5,0.5);
 		this.answer_slot2.position.set(this.tree2.getLocalBounds().width/2,450);
 		this.answer_slot2.scale.set(0,0);
+
+		this.answer_slot2.monkey_fail = new Sprite(this.app.loader.resources['monkey_fail'].texture);
+		this.answer_slot2.monkey_fail.anchor.set(0,1);
+		this.answer_slot2.monkey_fail.scale.set(0,0);
+		this.answer_slot2.monkey_fail.position.set(this.answer_slot2.position.x+100,this.answer_slot2.position.y-100);
+
+		this.tree2.addChild(this.answer_slot2.monkey_fail);
 		this.tree2.addChild(this.answer_slot2);
+
 
 		this.answer_slot3 = new Sprite(Texture.WHITE);
 		this.answer_slot3.anchor.set(0.5,0.5);
 		this.answer_slot3.position.set(this.tree3.getLocalBounds().width/2+50,550);
 		this.answer_slot3.scale.set(0,0);
+
+		this.answer_slot3.monkey_fail = new Sprite(this.app.loader.resources['monkey_fail'].texture);
+		this.answer_slot3.monkey_fail.anchor.set(0,1);
+		this.answer_slot3.monkey_fail.scale.set(0,0);
+		this.answer_slot3.monkey_fail.position.set(this.answer_slot3.position.x+100,this.answer_slot3.position.y-100);
+
+		this.tree3.addChild(this.answer_slot3.monkey_fail);
 		this.tree3.addChild(this.answer_slot3);
+
+
 
 		this.question_container = new Sprite(Texture.EMPTY);
 		this.question_container.width = this.app.dimensions.width;
 		this.question_container.scale.set(1,1);
+		this.question_container.y_show = 650;
 
 		let question_monkey_left = new Sprite(this.app.loader.resources["question_monkey_left"].texture);
 		let question_monkey_right = new Sprite(this.app.loader.resources["question_monkey_right"].texture);
 
 		question_monkey_left.scale = this.scale;
-		question_monkey_left.position.set(50,0);
+		question_monkey_left.anchor.set(1,0);
+		question_monkey_left.position.set(this.app.dimensions.width / 2 - 120,50);
 		question_monkey_left.rotation = 0.15;
 
 		question_monkey_right.scale = this.scale;
-		question_monkey_right.anchor.set(1,0);
-		question_monkey_right.position.set(this.app.dimensions.width - 20, 0);
+		question_monkey_right.anchor.set(0,0);
+		question_monkey_right.position.set(this.app.dimensions.width / 2 + 120, 50);
 		question_monkey_right.rotation = -0.15;
+
+		this.question_monkey_left = question_monkey_left;
+		this.question_monkey_right = question_monkey_right;
 
 		this.question_bg = new Sprite(this.app.loader.resources["question_bg"].texture);
 		this.question_bg.scale = this.scale;
@@ -176,6 +217,31 @@ export default class GameScene {
 
 		this.question_container.position.set(0, this.app.dimensions.height - this.question_container.height + 100);
 
+		this.monkey_hand_container = new Container();
+
+		this.monkey_hand = new Sprite(this.app.loader.resources["monkey_hand"].texture);
+		this.monkey_hand.scale = this.scale;
+
+		this.stone = new Sprite(this.app.loader.resources["stone"].texture);
+		this.stone.scale = this.scale;
+		this.stone.position.set(this.app.dimensions.width,this.app.dimensions.height);
+		this.stone.zIndex = 150;
+
+		this.hand_stone = new Sprite(this.app.loader.resources["stone"].texture);
+		this.hand_stone.scale = this.scale;
+		// this.hand_stone.position.set(-350, -this.monkey_hand.getLocalBounds().height);
+
+		this.monkey_hand_container.addChild(this.monkey_hand);
+
+		this.monkey_hand_container.pivot.set(this.monkey_hand.width*0.7, this.monkey_hand.height);
+		this.monkey_hand_container.rotation = -1.4;
+		this.monkey_hand_container.position.set(this.answer_slot3.getGlobalPosition().x + 100, this.app.dimensions.height + 220);
+		this.monkey_hand_container.addChild(this.hand_stone);
+
+		this.monkey_hand_container.sortableChildren = true;
+		this.hand_stone.zIndex = 1;
+		this.monkey_hand.zIndex = 2;
+
 		let score1 = new Sprite(this.app.loader.resources["monkey_face_normal"].texture);
 		let score2 = new Sprite(this.app.loader.resources["monkey_face_normal"].texture);
 		let score3 = new Sprite(this.app.loader.resources["monkey_face_normal"].texture);
@@ -183,10 +249,10 @@ export default class GameScene {
 		score1.scale = score2.scale = score3.scale = this.scale;
 		score1.alpha = score2.alpha = score3.alpha = 0.4;
 		score1.anchor = score2.anchor = score3.anchor = new Point(0.5,0.5);
-		score1.position.set(90,220);
+		score1.position.set(90,180);
 
-		score2.position.set(score1.position.x + score1.getBounds().width,220);
-		score3.position.set(score2.position.x + score2.getBounds().width,220);
+		score2.position.set(score1.position.x + score1.getBounds().width,score1.position.y);
+		score3.position.set(score2.position.x + score2.getBounds().width,score1.position.y);
 
 		this.scores = [score1,score2,score3];
 
@@ -218,6 +284,8 @@ export default class GameScene {
 		this.timer.addChild(this.timer_bar);
 		this.timer.addChild(time_text);
 
+		this.fixLayout();
+
 		this.container.addChild(this.sky);
 		this.container.addChild(this.back_grass_dark);
 		this.container.addChild(this.back_grass_left2);
@@ -242,9 +310,49 @@ export default class GameScene {
 		this.container.addChild(this.quit_btn);
 		this.container.addChild(this.score_text);
 		this.container.addChild(this.timer);
+		this.container.addChild(this.monkey_hand_container);
+		this.container.addChild(this.stone);
 
 		this._setListeners();
 
+	}
+
+	fixLayout() {
+		if(!this.app.dimensions.isPortrait) {
+			this.ground.position.set(this.app.dimensions.width/2, this.app.dimensions.height);
+
+			this.question_monkey_left.x -= 50;
+			this.question_monkey_right.x += 50;
+			this.question_bg.texture = this.app.loader.resources["question_bg_wide"].texture;
+
+			this.container.sortableChildren = true;
+			this.question_container.y_show = 330;
+
+			this.left_grass.zIndex = 90;
+			this.question_container.zIndex = 100;
+			this.monkey_hand_container.zIndex = 101;
+
+
+			this.ground_monkey.anchor.set(1,1);
+			this.ground_monkey.position.set(this.app.dimensions.width - 50, this.app.dimensions.height-100);
+
+			this.back_grass_middle.visible = false;
+
+			this.tree1.position.set(this.app.dimensions.width/2 - this.tree1.width/2 - 220, this.app.dimensions.height - this.tree1.height);
+			this.tree2.position.set(this.app.dimensions.width/2 - this.tree2.width/2, this.app.dimensions.height-this.tree2.height + 130);
+			this.tree3.position.set(this.app.dimensions.width/2-this.tree3.width/2+220, this.app.dimensions.height-this.tree3.height - 80);
+
+			this.back_grass_left2.visible = false;
+			this.back_grass_right2.visible = false;
+			this.back_grass_right.position.x += 100;
+			this.back_grass_right.position.y += 100;
+
+			this.scores[0].position.set(60,110);
+
+			this.scores[1].position.set(this.scores[0].position.x + this.scores[0].getBounds().width,this.scores[0].position.y);
+			this.scores[2].position.set(this.scores[1].position.x + this.scores[1].getBounds().width,this.scores[0].position.y);
+
+		}
 	}
 
 	resetWrongAnswers() {
@@ -267,11 +375,14 @@ export default class GameScene {
 	_answered(answerId) {
 		let q = this.questions[this.activeQuestionId];
 		let answerSlot = this[`answer_slot${answerId+1}`];
-		if(q.images[answerId].correct) {
-			this._correctAnswer(answerSlot);
-		} else {
-			this._wrongAnswer(answerSlot);
-		}
+
+		this.animateHand(answerSlot,() => {
+			if(q.images[answerId].correct) {
+				this._correctAnswer(answerSlot);
+			} else {
+				this._wrongAnswer(answerSlot);
+			}
+		});
 	}
 
 	_correctAnswer(answerSlot) {
@@ -289,20 +400,111 @@ export default class GameScene {
 		let optionBox = answerSlot.getChildAt(0);
 		let animator = new Animator(optionBox.childObjects.image);
 		let animator2 = new Animator(optionBox.childObjects.cross);
+		let animator3 = new Animator(answerSlot.monkey_fail);
+
+		await animator3.animate({
+			scale: this.scale
+		},200);
 
 		await animator.animate({
 			alpha: 0
 		}, 300);
 		await animator2.animate({
-			alpha: 1
+			scale: {
+				x: 1,
+				y: 1
+			}
 		}, 300);
+
+		setTimeout(() => {
+			animator3.animate({
+				scale: {
+					x:0,
+					y:0
+				}
+			},200);
+		},500);
 
 		if(this.answers_wrong >= 2) {
 			this.changeScore(this.activeQuestionId, false);
 		}
 	}
 
+	async animateHand(answerSlot, cb) {
+		let handAnimator = new Animator(this.monkey_hand_container);
+		let stoneAnimator = new Animator(this.stone);
+
+		let rotation = this.monkey_hand_container.rotation * (180/Math.PI);
+
+		this.hand_stone.visible = true;
+
+		await handAnimator.animate({
+			rotation: -20
+		},100);
+
+		this.hand_stone.visible = false;
+
+		this.stone.position.set(this.hand_stone.getGlobalPosition().x, this.hand_stone.getGlobalPosition().y);
+
+		let answerSlotPos = answerSlot.getGlobalPosition();
+		let stonePos = this.stone.getGlobalPosition();
+
+		let stonePos1 = {
+			x: answerSlotPos.x + (stonePos.x - answerSlotPos.x)/5,
+			y: answerSlotPos.y - 200
+		};
+
+		let stonePos2 = {
+			x: answerSlotPos.x - this.stone.width/8,
+			y: answerSlotPos.y - this.stone.height/8
+		};
+
+		let stoneScale = {
+			x: this.stone.scale.x,
+			y: this.stone.scale.y
+		};
+
+		(async () => {
+			this.stone.visible = true;
+			await stoneAnimator.animate({
+				position: stonePos1,
+				scale: {
+					x: this.stone.scale.x * 0.5,
+					y: this.stone.scale.y * 0.5
+				}
+			},300);
+			// return;
+
+
+			this.app.loader.resources["sound_throw"].sound.play();
+
+			await stoneAnimator.animate({
+				position: stonePos2,
+				scale: {
+					x: this.stone.scale.x * 0.5,
+					y: this.stone.scale.y * 0.5
+				}
+			},300);
+
+			this.stone.visible = false;
+			this.stone.scale.set(stoneScale.x, stoneScale.y);
+		})();
+
+		await handAnimator.animate({
+			rotation: 10
+		},100);
+
+		await handAnimator.animate({
+			rotation
+		},400);
+
+		setTimeout(cb,400);
+	}
+
 	async changeScore(scoreId, isCorrect) {
+
+		this.timeAnimator.stop();
+		this.timeout&&clearTimeout(this.timeout);
 		let score = this.scores[scoreId];
 
 		let animator = new Animator(score);
@@ -330,6 +532,8 @@ export default class GameScene {
 	}
 
 	start() {
+		this.timeAnimator = new Animator(this.timer_bar);
+
 		this.displayQuestion();
 	}
 
@@ -383,6 +587,8 @@ export default class GameScene {
 	}
 
 	async displayQuestion(cb) {
+		this.timer_bar.scale.set(0,1);
+
 		let animation1 = new Animator(this.answer_slot1);
 		let animation2 = new Animator(this.answer_slot2);
 		let animation3 = new Animator(this.answer_slot3);
@@ -392,7 +598,7 @@ export default class GameScene {
 		await question_anim.animate({
 			position: {
 				x: this.question_container.position.x,
-				y: this.question_container.position.y - 650
+				y: this.question_container.position.y - (this.question_container.y_show)
 			}
 		}, 300);
 		await animation1.animate({
@@ -418,6 +624,18 @@ export default class GameScene {
 			rotation: 360
 		},500);
 
+		this.timeAnimator.animate({
+			scale: {
+				x: 1
+			}
+		}, 60000).then(() => {
+			this.changeScore(this.activeQuestionId, false);
+		});
+
+		this.timeout = setTimeout(() => {
+			this.app.loader.resources["timeout"].sound.play();
+		},55000);
+
 		cb&&cb();
 	}
 
@@ -432,7 +650,7 @@ export default class GameScene {
 
 		await question_anim.animate({
 			position: {
-				y: this.question_container.position.y + 650
+				y: this.question_container.position.y + this.question_container.y_show
 			}
 		}, 300);
 		await animation1.animate({

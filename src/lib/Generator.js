@@ -68,8 +68,9 @@ export default {
 		crossSprite.visible = false;
 
 		let cross = new Sprite(app.loader.resources["cross"].texture);
-		cross.position.set(box.width / 2 - cross.width / 2, box.height / 2 - cross.height /2);
-		cross.alpha = 0;
+		cross.position.set(box.width / 2 , box.height / 2);
+		cross.scale.set(0,0);
+		cross.anchor.set(0.5,0.5);
 
 		box.addChild(image);
 		box.addChild(tickSprite);

@@ -42,6 +42,7 @@ export default class Bootstrap {
 			.add("banana", "assets/banana.png")
 			.add("apple", "assets/apple.png")
 			.add("question_bg", "assets/Question.png")
+			.add("question_bg_wide", "assets/Question_wide.png")
 			.add("tick1", "assets/tick1.png")
 			.add("cross1", "assets/cross1.png")
 			.add("cross", "assets/Cross.png")
@@ -51,6 +52,9 @@ export default class Bootstrap {
 			.add("monkey_face_tick", "assets/Count2.png")
 			.add("monkey_face_cross", "assets/Count3.png")
 			.add("time", "assets/Time.png")
+			.add("monkey_hand", "assets/MonkeyHand.png")
+			.add("stone", "assets/Stone.png")
+			.add("monkey_fail", "assets/Monkey9.png")
 
 		for(let file of files) {
 			if(this.app.loader.resources[file]) continue;
@@ -60,6 +64,8 @@ export default class Bootstrap {
 		this.app.loader.add("sound_button", "assets/sounds/button.mp3")
 			.add("sound_correct", "assets/sounds/correct.mp3")
 			.add("sound_incorrect", "assets/sounds/try-again.mp3")
+			.add("sound_throw", "assets/sounds/throw.mp3")
+			.add("timeout", "assets/sounds/timeout.mp3")
 			.add("sound_completed", "assets/sounds/game-completed.mp3");
 
 		this.app.loader.load(cb);

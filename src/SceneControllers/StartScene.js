@@ -5,6 +5,17 @@ export default class StartScene {
 	constructor(app) {
 		this.app = app;
 		this.scale = new Point(0.7,0.7);
+		this.static_scale = new Point(0.7,0.7);
+
+
+		if(!this.app.dimensions.isPortrait) {
+			this.scale.x/=this.app.dimensions.width/this.app.dimensions.height;
+			this.scale.y/=this.app.dimensions.width/this.app.dimensions.height;
+		}
+
+		// this.scale.x /= window.devicePixelRatio;
+		// this.scale.y /= window.devicePixelRatio;
+
 		this.container = new Container();
 		this.init();
 	}
@@ -25,10 +36,11 @@ export default class StartScene {
 
 		let rect = new Graphics()
 			.beginFill(0xFFFFFF)
-			.drawRoundedRect(0,0,900,600,100)
+			.drawRoundedRect(0,0,this.app.dimensions.width*1.2,700,100)
 			.endFill();
 		let rectTexture = this.app.renderer.generateTexture(rect);
 		this.rect = new Sprite(rectTexture);
+		this.rect.scale = this.scale;
 		this.rect.position.set(this.app.dimensions.width/2 - this.rect.width/2, this.app.dimensions.height/2-this.rect.height/2);
 
 		// region Title
@@ -41,8 +53,8 @@ export default class StartScene {
 		});
 		monkeyCardText.position.set(this.monkeyCard.width / 2 - monkeyCardText.width / 2, this.monkeyCard.height / 2 - monkeyCardText.height / 2);
 
-		this.monkeyCard.scale = this.scale;
-		this.monkeyCard.position.set(this.rect.width/2-this.monkeyCard.width/2, -110);
+		this.monkeyCard.scale = this.static_scale;
+		this.monkeyCard.position.set(this.rect.getLocalBounds().width/2-this.monkeyCard.width/2, -110);
 
 		this.monkeyCard.addChild(monkeyCardText);
 		this.rect.addChild(this.monkeyCard);
@@ -56,22 +68,22 @@ export default class StartScene {
 			fontSize: 120,
 			fill: 0x42210B
 		});
-		this.start_btn.scale = this.scale;
-		this.start_btn.position.set(this.rect.width / 2 - this.start_btn.width / 2, this.rect.height - 50);
+		this.start_btn.scale = this.static_scale;
+		this.start_btn.position.set(this.rect.getLocalBounds().width / 2 - this.start_btn.width / 2, this.rect.getLocalBounds().height - this.start_btn.height);
 		this.rect.addChild(this.start_btn);
 
 
 		let grapeBox = Generator.generateOptionBox(this.app, this.app.loader.resources["grape"].texture);
-		grapeBox.scale.set(0.5,0.5);
+		grapeBox.scale.set(0.7,0.7);
 		grapeBox.position.set(70,150);
 
 		let bananaBox = Generator.generateOptionBox(this.app, this.app.loader.resources["banana"].texture);
-		bananaBox.scale.set(0.5,0.5);
-		bananaBox.position.set(this.rect.width / 2 - bananaBox.width/2,150);
+		bananaBox.scale.set(0.7,0.7);
+		bananaBox.position.set(this.rect.getLocalBounds().width / 2 - bananaBox.width/2,150);
 
 		let appleBox = Generator.generateOptionBox(this.app, this.app.loader.resources["apple"].texture);
-		appleBox.scale.set(0.5,0.5);
-		appleBox.position.set(this.rect.width - bananaBox.width - 70,150);
+		appleBox.scale.set(0.7,0.7);
+		appleBox.position.set(this.rect.getLocalBounds().width - bananaBox.width - 70,150);
 
 		this.rect.addChild(grapeBox);
 		this.rect.addChild(bananaBox);
@@ -90,8 +102,8 @@ export default class StartScene {
 		// answerText.anchor.set(0.5,0.5);
 		answerText.position.set(answerBg.width/2 - answerText.width/2,answerBg.height/2 - answerText.height/2);
 		answerBg.addChild(answerText);
-		answerBg.scale.set(0.42,0.42);
-		answerBg.position.set(this.rect.width / 2 - answerBg.width/2, 400);
+		answerBg.scale.set(0.55,0.55);
+		answerBg.position.set(this.rect.getLocalBounds().width / 2 - answerBg.width/2, 470);
 
 
 		this.rect.addChild(answerBg);
