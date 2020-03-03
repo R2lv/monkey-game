@@ -29,6 +29,7 @@ export default class Animator {
 
 		return new Promise((resolve => {
 			requestAnimationFrame(fn.bind(this));
+			const self = this;
 			function fn() {
 				if(this._stopped) return;
 				let f;
@@ -71,7 +72,7 @@ export default class Animator {
 					requestAnimationFrame(fn.bind(this));
 					return;
 				}
-				resolve();
+				resolve(self);
 			}
 		}));
 	}

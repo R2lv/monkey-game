@@ -1,23 +1,49 @@
 import {Container, Point, Graphics, Sprite, Text} from "pixi.js";
 import Generator from "../lib/Generator";
+import Animator from "../lib/Animator";
 
 export default class StartScene {
 	constructor(app) {
 		this.app = app;
-		this.scale = new Point(0.7,0.7);
+		this._scale = new Point(0.7,0.7);
 		this.static_scale = new Point(0.7,0.7);
+		this.started = false;
 
-
-		if(!this.app.dimensions.isPortrait) {
-			this.scale.x/=this.app.dimensions.width/this.app.dimensions.height;
-			this.scale.y/=this.app.dimensions.width/this.app.dimensions.height;
-		}
+		this.fixScale();
 
 		// this.scale.x /= window.devicePixelRatio;
 		// this.scale.y /= window.devicePixelRatio;
 
 		this.container = new Container();
 		this.init();
+
+		let t = 0;
+
+		window.addEventListener("resize", () => {
+			clearTimeout(t);
+
+			t = setTimeout(() => {
+				this.fixScale();
+				this.init();
+			},500);
+		});
+	}
+
+	onStart(cb) {
+		this.onStartCb = cb;
+	}
+
+
+	fixScale() {
+		if(!this.app.dimensions.isPortrait) {
+			let scale = this._scale.clone();
+			console.log(this.app.dimensions, this.app.screen);
+			scale.x/=this.app.dimensions.width/this.app.dimensions.height;
+			scale.y/=this.app.dimensions.width/this.app.dimensions.height;
+			this.scale = scale;
+		} else {
+			this.scale = this._scale;
+		}
 	}
 
 	getContainer() {
@@ -25,6 +51,7 @@ export default class StartScene {
 	}
 
 	init() {
+		this.container.removeChildren();
 		let blackBg = new Graphics()
 			.beginFill(0x000000)
 			.drawRect(0,0,this.app.dimensions.width,this.app.dimensions.height)
@@ -109,5 +136,10 @@ export default class StartScene {
 		this.rect.addChild(answerBg);
 		this.container.addChild(this.blackBg);
 		this.container.addChild(this.rect);
+
+
+		this.start_btn.on("pointerup", () => {
+			this.onStartCb&&this.onStartCb();
+		});
 	}
 }

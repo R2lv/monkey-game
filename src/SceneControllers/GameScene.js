@@ -7,15 +7,29 @@ export default class GameScene {
 		this.app = app;
 
 
+		this.started = false;
 		// this.scale = this.app.dimensions.isPortrait ? new Point(0.6,0.6) : new Point(0.5,0.5);
-		this.scale = new Point(0.6,0.6);
-		if(!this.app.dimensions.isPortrait) {
-			this.scale.x/=this.app.dimensions.width/this.app.dimensions.height;
-			this.scale.y/=this.app.dimensions.width/this.app.dimensions.height;
-		}
+		this._scale = new Point(0.6,0.6);
+		this.fixScale();
 
 		this.container = new Container();
 		this.init();
+	}
+
+	onRestart(cb) {
+		this.onRestartCb = cb;
+	}
+
+	fixScale() {
+		if(!this.app.dimensions.isPortrait) {
+			let scale = this._scale.clone();
+			console.log(this.app.dimensions, this.app.screen);
+			scale.x/=this.app.dimensions.width/this.app.dimensions.height;
+			scale.y/=this.app.dimensions.width/this.app.dimensions.height;
+			this.scale = scale;
+		} else {
+			this.scale = this._scale;
+		}
 	}
 
 	getContainer() {
@@ -23,8 +37,67 @@ export default class GameScene {
 	}
 
 	init() {
+		this.wrong_slots = [];
+		this.final_data = [];
 		this.resetWrongAnswers();
 
+		this.setLayout();
+		this.fixLayout();
+		this._setListeners();
+
+		this.timeAnimator = new Animator(this.timer_bar);
+
+		this.idleAnimation();
+
+		let t = 0;
+		window.addEventListener("resize", () => {
+			clearTimeout(t);
+
+			t = setTimeout(() => {
+				this.container.removeChildren();
+				this.fixScale();
+				this.setLayout();
+				this.fixLayout();
+
+				this.activateQuestion(this.activeQuestionId);
+				this.started&&this.displayQuestion(undefined,true);
+				this._setListeners();
+
+				this.timeAnimator = new Animator(this.timer_bar);
+
+				this.idleAnimation();
+
+				this.loadSavedProperties();
+			},500);
+		});
+	}
+
+	loadSavedProperties() {
+		for(let i in this.final_data) {
+			if(!this.final_data.hasOwnProperty(i)) continue;
+			let data = this.final_data[i];
+
+			let isWrong = data.miss_count > 1 || data.f_timeout;
+
+			this.scores[i].texture = isWrong ? this.app.loader.resources["monkey_face_cross"].texture : this.app.loader.resources["monkey_face_tick"].texture;
+			this.scores[i].alpha = 1;
+		}
+
+		for(let i = 0; i < this.wrong_slots.length; i++) {
+			console.log("Wrong slot ", i);
+			let slot_id = this.wrong_slots[i];
+			let slot = this['answer_slot'+(slot_id+1)];
+			this._wrongAnswer(slot,slot_id,true);
+		}
+
+		if(this.answers_wrong > 1) {
+			this.showCorrectAnswer(false);
+		}
+
+		this.updateScore();
+	}
+
+	setLayout() {
 		this.ground = new Sprite(this.app.loader.resources["ground"].texture);
 		this.ground.position.set(this.app.dimensions.width/2, this.app.dimensions.height-50);
 		this.ground.anchor.set(0.5,1);
@@ -61,7 +134,7 @@ export default class GameScene {
 		this.back_grass_left.rotation = 0.05;
 
 		this.back_grass_middle = new Sprite(this.app.loader.resources["back_grass_middle"].texture);
-		this.back_grass_middle.position.set(this.app.dimensions.width/2, this.app.dimensions.height-400);
+		this.back_grass_middle.position.set(this.app.dimensions.width/2, this.app.dimensions.height-300);
 		this.back_grass_middle.anchor.set(0.5,1);
 		this.back_grass_middle.scale = this.scale;
 
@@ -109,6 +182,16 @@ export default class GameScene {
 		this.tree3 = new Sprite(this.app.loader.resources["tree3"].texture);
 		this.tree3.scale = this.scale;
 		this.tree3.position.set(this.app.dimensions.width-this.tree3.width+20, this.app.dimensions.height-this.tree3.height-320);
+
+		this.behind_monkey1 = new Sprite(this.app.loader.resources["behind_monkey1"].texture);
+		this.behind_monkey2 = new Sprite(this.app.loader.resources["behind_monkey2"].texture);
+		this.behind_monkey3 = new Sprite(this.app.loader.resources["behind_monkey3"].texture);
+
+		this.behind_monkey1.scale = this.behind_monkey2.scale = this.behind_monkey3.scale = this.scale;
+
+		this.behind_monkey1.position.set(this.tree1.position.x+this.behind_monkey1.width/2 - 100, this.tree1.position.y+80);
+		this.behind_monkey2.position.set(this.tree2.position.x+this.behind_monkey2.width/2+250, this.tree2.position.y+100);
+		this.behind_monkey3.position.set(this.tree3.position.x+this.behind_monkey3.width/2+150, this.tree3.position.y+100);
 
 		this.quit_btn = Generator.generate(this.app.loader.resources["quit"].texture, "Quit", {
 			fontSize: 40,
@@ -245,16 +328,20 @@ export default class GameScene {
 		let score1 = new Sprite(this.app.loader.resources["monkey_face_normal"].texture);
 		let score2 = new Sprite(this.app.loader.resources["monkey_face_normal"].texture);
 		let score3 = new Sprite(this.app.loader.resources["monkey_face_normal"].texture);
+		let score4 = new Sprite(this.app.loader.resources["monkey_face_normal"].texture);
+		let score5 = new Sprite(this.app.loader.resources["monkey_face_normal"].texture);
 
-		score1.scale = score2.scale = score3.scale = this.scale;
-		score1.alpha = score2.alpha = score3.alpha = 0.4;
-		score1.anchor = score2.anchor = score3.anchor = new Point(0.5,0.5);
+		score1.scale = score2.scale = score3.scale = score4.scale = score5.scale = this.scale;
+		score1.alpha = score2.alpha = score3.alpha = score4.alpha = score5.alpha = 0.4;
+		score1.anchor = score2.anchor = score3.anchor = score4.anchor = score5.anchor = new Point(0.5,0.5);
 		score1.position.set(90,180);
 
 		score2.position.set(score1.position.x + score1.getBounds().width,score1.position.y);
 		score3.position.set(score2.position.x + score2.getBounds().width,score1.position.y);
+		score4.position.set(score3.position.x + score3.getBounds().width,score1.position.y);
+		score5.position.set(score4.position.x + score4.getBounds().width,score1.position.y);
 
-		this.scores = [score1,score2,score3];
+		this.scores = [score1,score2,score3,score4,score5];
 
 		this.timer = new Sprite(this.app.loader.resources["time"].texture);
 		this.timer.scale = this.scale;
@@ -284,7 +371,238 @@ export default class GameScene {
 		this.timer.addChild(this.timer_bar);
 		this.timer.addChild(time_text);
 
-		this.fixLayout();
+
+		this.wrong_answer_container = new Container();
+		this.wrong_answer_inner_container = new Container();
+		let blackBgGraphic = new Graphics()
+			.beginFill(0x000000)
+			.drawRect(0,0,this.app.dimensions.width,this.app.dimensions.height)
+			.endFill();
+		let blackBgTexture = this.app.renderer.generateTexture(blackBgGraphic);
+		let blackBg = new Sprite(blackBgTexture);
+		blackBg.position.set(0,0);
+		blackBg.alpha = 0.8;
+
+		this.wrong_answer_container.addChild(blackBg);
+		this.wrong_answer_container.visible = false;
+		this.wrong_answer_container.zIndex = 9999;
+
+
+		let emptyBgTexture = this.app.renderer.generateTexture(blackBgGraphic);
+		let emptyBg = new Sprite(emptyBgTexture);
+		emptyBg.position.set(0,0);
+		emptyBg.alpha = 0;
+		this.wrong_answer_inner_container.addChild(emptyBg);
+
+		this.wrong_answer_container.addChild(this.wrong_answer_inner_container);
+
+		this.wrong_answer_inner_container.pivot.set(this.wrong_answer_inner_container.width/2,this.wrong_answer_inner_container.height/2);
+		this.wrong_answer_inner_container.position.set(this.wrong_answer_inner_container.width/2,this.wrong_answer_inner_container.height/2);
+
+		let correct_answer_bg = new Sprite(this.app.loader.resources['correct_answer_bg'].texture);
+		correct_answer_bg.anchor.set(0.47,0.5);
+		correct_answer_bg.position.set(this.wrong_answer_inner_container.width/2,this.wrong_answer_inner_container.height/2 - correct_answer_bg.height*0.15);
+		correct_answer_bg.scale = this.scale;
+		this.wrong_answer_inner_container.addChild(correct_answer_bg);
+
+
+
+		this.answer_bg = new Sprite(this.app.loader.resources["question_bg"].texture);
+		this.answer_bg.anchor.set(0.5,1);
+		this.answer_bg.position.set(0, correct_answer_bg.height);
+		let text = new Text(`This is an apple.`, {
+			fontFamily: "Risque",
+			fontSize: 110
+		});
+		text.position.set(-text.width/2,-this.answer_bg.getLocalBounds().height + text.height/2);
+		this.answer_bg.addChild(text);
+		this.answer_bg._txt = text;
+		this.btn_continue = Generator.generate(this.app.loader.resources["continue_button"].texture, "Continue", {
+			fontFamily: 'Alata',
+			fontWeight: 'bold',
+			fontSize: 120,
+			fill: 0x603813
+		});
+		this.btn_continue.position.set(-this.btn_continue.width/2,correct_answer_bg.height+20);
+		this.wrong_answer_monkey_bottom = new Sprite(this.app.loader.resources["wrong_answer_monkey_bottom"].texture);
+		this.wrong_answer_monkey_bottom.position.set(-correct_answer_bg.getLocalBounds().width/2-this.wrong_answer_monkey_bottom.width*0.3,correct_answer_bg.getLocalBounds().height/2-this.wrong_answer_monkey_bottom.height);
+
+		this.wrong_answer_monkey_top = new Sprite(this.app.loader.resources["wrong_answer_monkey_top"].texture);
+
+
+		this.correct_answer_image = new Sprite();
+		this.correct_answer_image.anchor.set(0.5,0.2);
+
+		const self = this;
+
+		correct_answer_bg.addChild(this.correct_answer_image);
+		correct_answer_bg.addChild(this.wrong_answer_monkey_bottom);
+		correct_answer_bg.addChild(this.answer_bg);
+		correct_answer_bg.addChild(this.btn_continue);
+
+		this.correct_answer_bg = correct_answer_bg;
+
+		this.correct_answer_image.set_texture = function(texture) {
+			this.texture = texture;
+			let scale = self.correct_answer_bg.height/(this.getLocalBounds().height);
+			scale *= 0.6;
+
+			this.scale.set(scale,scale);
+		};
+
+
+
+
+
+
+
+		this.result_container = new Container();
+		this.result_inner_container = new Container();
+		let blackBgGraphic1 = new Graphics()
+			.beginFill(0x000000)
+			.drawRect(0,0,this.app.dimensions.width,this.app.dimensions.height)
+			.endFill();
+		let blackBgTexture1 = this.app.renderer.generateTexture(blackBgGraphic1);
+		let blackBg1 = new Sprite(blackBgTexture1);
+		blackBg1.position.set(0,0);
+		blackBg1.alpha = 0.8;
+
+		this.result_container.addChild(blackBg1);
+		this.result_container.visible = false;
+		this.result_container.zIndex = 9999;
+
+
+		let emptyBgTexture1 = this.app.renderer.generateTexture(blackBgGraphic1);
+		let emptyBg1 = new Sprite(emptyBgTexture1);
+		emptyBg1.position.set(0,0);
+		emptyBg1.alpha = 0;
+		this.result_inner_container.addChild(emptyBg1);
+
+		this.result_container.addChild(this.result_inner_container);
+		this.result_inner_container.pivot.set(this.result_inner_container.width/2,this.result_inner_container.height/2);
+		this.result_inner_container.position.set(this.result_inner_container.width/2,this.result_inner_container.height/2);
+
+		this.result_box = new Sprite(this.app.loader.resources['game_result_bg'].texture);
+		this.result_box.scale = this.scale;
+		this.result_box.anchor.set(0.52,0.5);
+		this.result_box.position.set(this.result_inner_container.width/2,this.result_inner_container.height/2);
+		this.result_inner_container.addChild(this.result_box);
+
+
+		let resultBoxBounds = this.result_box.getLocalBounds();
+		let game_score_label = new Text("Game score", {
+			fontFamily: 'Alata',
+			fontSize: 80,
+			fill: 0x42210B
+		});
+		game_score_label.anchor.set(0.5,0.5);
+		game_score_label.position.set(40,150);
+
+		let game_score_txt = new Text("120", {
+			fontFamily: 'Alata',
+			fontSize: 100,
+			fontWeight: 'bold',
+			fill: 0x603813
+		});
+		game_score_txt.anchor.set(0.5,0.5);
+		game_score_txt.position.set(game_score_label.position.x,game_score_label.position.y+game_score_txt.height-30);
+
+		let time_score_label = new Text("Time score", {
+			fontFamily: 'Alata',
+			fontSize: 80,
+			fill: 0x42210B
+		});
+		time_score_label.anchor.set(0.5,0.5);
+		time_score_label.position.set(game_score_txt.position.x,game_score_txt.position.y+time_score_label.height-10);
+
+		let time_score_txt = new Text("100", {
+			fontFamily: 'Alata',
+			fontSize: 100,
+			fontWeight: 'bold',
+			fill: 0x603813
+		});
+		time_score_txt.anchor.set(0.5,0.5);
+		time_score_txt.position.set(time_score_label.position.x,time_score_label.position.y+time_score_txt.height-30);
+
+		this.result_box.addChild(game_score_label);
+		this.result_box.addChild(game_score_txt);
+		this.result_box.addChild(time_score_label);
+		this.result_box.addChild(time_score_txt);
+		this.result_box.game_score_label = game_score_label;
+		this.result_box.game_score_txt = game_score_txt;
+		this.result_box.time_score_label = time_score_label;
+		this.result_box.time_score_txt = time_score_txt;
+
+
+		let stars_container = new Container();
+		let stars = [
+			new Sprite(this.app.loader.resources["score_star"].texture),
+			new Sprite(this.app.loader.resources["score_star"].texture),
+			new Sprite(this.app.loader.resources["score_star"].texture)
+		];
+
+		stars[0].anchor = stars[1].anchor = stars[2].anchor = new Point(0.5,0.5);
+
+		stars[1].scale.set(0.9);
+		stars[0].rotation = -0.4;
+		stars[0].scale.set(0.7);
+		stars[2].rotation = 0.4;
+		stars[2].scale.set(0.7);
+
+		stars[2].max_scale=0.7;
+		stars[0].max_scale=0.7;
+		stars[1].max_scale=0.9;
+
+		stars[1].position.set(stars[0].position.x+stars[0].getBounds().width-60,stars[0].position.y-120);
+		stars[2].position.set(stars[1].position.x+stars[1].getBounds().width-60,stars[0].position.y);
+
+		stars_container.addChild(stars[0]);
+		stars_container.addChild(stars[1]);
+		stars_container.addChild(stars[2]);
+		stars_container.pivot.set(stars_container.width/2,stars_container.height/2);
+		stars_container.position.set(this.result_box.getLocalBounds().width/2-stars_container.getBounds().width/2-40,-120);
+		this.result_box.addChild(stars_container);
+		this.result_box.stars_container = stars_container;
+
+
+		let your_score_label = new Text("Your score", {
+			fontFamily: 'Alata',
+			fontSize: 95,
+			fill: 0x42210B
+		});
+		your_score_label.anchor.set(0.5,0.5);
+		your_score_label.position.set(40,-170);
+
+		let your_score_txt = new Text("210", {
+			fontFamily: 'Alata',
+			fontSize: 130,
+			fontWeight: 'bold',
+			fill: 0x603813
+		});
+		your_score_txt.anchor.set(0.5,0.5);
+		your_score_txt.position.set(your_score_label.position.x,your_score_label.position.y+your_score_txt.height-30);
+
+		this.result_box.addChild(your_score_label);
+		this.result_box.addChild(your_score_txt);
+		this.result_box.your_score_label = your_score_label;
+		this.result_box.your_score_txt = your_score_txt;
+
+
+		this.restart_btn = new Sprite(this.app.loader.resources['restart_btn'].texture);
+		this.restart_btn.position.set(-resultBoxBounds.width/2 + 200,resultBoxBounds.height/2-this.restart_btn.height-130);
+
+
+		this.continue_btn = Generator.generate(this.app.loader.resources["continue_button"].texture, "Continue", {
+			fontFamily: 'Alata',
+			fontWeight: 'bold',
+			fontSize: 120,
+			fill: 0x603813
+		});
+		this.continue_btn.position.set(resultBoxBounds.width/2 - this.continue_btn.width - 130,resultBoxBounds.height/2-this.continue_btn.height-130);
+
+		this.result_box.addChild(this.restart_btn);
+		this.result_box.addChild(this.continue_btn);
+
 
 		this.container.addChild(this.sky);
 		this.container.addChild(this.back_grass_dark);
@@ -292,8 +610,11 @@ export default class GameScene {
 		this.container.addChild(this.back_grass_3);
 		this.container.addChild(this.back_grass_right2);
 		this.container.addChild(this.bg_gradient);
+		this.container.addChild(this.behind_monkey2);
 		this.container.addChild(this.tree2);
+		this.container.addChild(this.behind_monkey1);
 		this.container.addChild(this.tree1);
+		this.container.addChild(this.behind_monkey3);
 		this.container.addChild(this.tree3);
 		this.container.addChild(this.back_grass_middle);
 		this.container.addChild(this.back_grass_left);
@@ -306,15 +627,16 @@ export default class GameScene {
 		this.container.addChild(score1);
 		this.container.addChild(score2);
 		this.container.addChild(score3);
+		this.container.addChild(score4);
+		this.container.addChild(score5);
 
 		this.container.addChild(this.quit_btn);
 		this.container.addChild(this.score_text);
 		this.container.addChild(this.timer);
 		this.container.addChild(this.monkey_hand_container);
 		this.container.addChild(this.stone);
-
-		this._setListeners();
-
+		this.container.addChild(this.wrong_answer_container);
+		this.container.addChild(this.result_container);
 	}
 
 	fixLayout() {
@@ -342,6 +664,11 @@ export default class GameScene {
 			this.tree2.position.set(this.app.dimensions.width/2 - this.tree2.width/2, this.app.dimensions.height-this.tree2.height + 130);
 			this.tree3.position.set(this.app.dimensions.width/2-this.tree3.width/2+220, this.app.dimensions.height-this.tree3.height - 80);
 
+
+			this.behind_monkey1.position.set(this.tree1.position.x+this.behind_monkey1.width/2 - 60, this.tree1.position.y+60);
+			this.behind_monkey2.position.set(this.tree2.position.x+this.behind_monkey2.width/2+140, this.tree2.position.y+100);
+			this.behind_monkey3.position.set(this.tree3.position.x+this.behind_monkey3.width/2+45, this.tree3.position.y+125);
+
 			this.back_grass_left2.visible = false;
 			this.back_grass_right2.visible = false;
 			this.back_grass_right.position.x += 100;
@@ -351,12 +678,60 @@ export default class GameScene {
 
 			this.scores[1].position.set(this.scores[0].position.x + this.scores[0].getBounds().width,this.scores[0].position.y);
 			this.scores[2].position.set(this.scores[1].position.x + this.scores[1].getBounds().width,this.scores[0].position.y);
+			this.scores[3].position.set(this.scores[2].position.x + this.scores[2].getBounds().width,this.scores[0].position.y);
+			this.scores[4].position.set(this.scores[3].position.x + this.scores[3].getBounds().width,this.scores[0].position.y);
+
+			this.correct_answer_bg.texture = this.app.loader.resources['correct_answer_bg_h'].texture;
+			this.correct_answer_bg.position.set(this.wrong_answer_inner_container.width/2+this.correct_answer_bg.width*0.2,this.correct_answer_bg.height/2+20);
+
+
+			this.answer_bg.texture = this.app.loader.resources["question_bg_wide"].texture;
+			this.answer_bg.position.set(-this.correct_answer_bg.width*0.55, this.correct_answer_bg.height+this.answer_bg.height);
+
+
+			this.btn_continue.scale.set(this.btn_continue.scale.x*0.7,this.btn_continue.scale.y*0.7);
+			this.btn_continue.position.set(this.answer_bg.position.x+this.answer_bg.width/2-this.btn_continue.width+50,this.answer_bg.position.y-50);
+
+
+			this.correct_answer_image.anchor.set(0.45,0.3);
+			this.correct_answer_image.position.set(-this.correct_answer_bg.width*0.55,-120);
+			this.wrong_answer_monkey_bottom.position.set(-this.correct_answer_bg.getLocalBounds().width/2-100,-100);
+
+
+			const self = this;
+			this.correct_answer_image.set_texture = function(texture) {
+				this.texture = texture;
+				let scale = self.correct_answer_bg.height/this.height;
+				scale *= 1.4;
+				this.scale.set(scale,scale);
+			};
+
+			this.result_box.texture = this.app.loader.resources["game_result_bg_h"].texture;
+
+			this.result_box.position.set(this.result_inner_container.width/2-40,this.result_inner_container.height/2-30);
+
+			this.result_box.stars_container.pivot.set(this.result_box.stars_container.width/2,this.result_box.stars_container.height/2);
+			this.result_box.stars_container.position.set(this.result_box.getBounds().width/2,-70);
+
+			this.result_box.your_score_label.position.set(-this.result_box.getBounds().width*0.3,50);
+			this.result_box.your_score_txt.position.set(this.result_box.your_score_label.position.x,this.result_box.your_score_label.position.y+this.result_box.your_score_label.height);
+
+			this.result_box.game_score_label.position.set(this.result_box.getBounds().width*0.6,-50);
+			this.result_box.game_score_txt.position.set(this.result_box.game_score_label.position.x,this.result_box.game_score_label.position.y+this.result_box.game_score_txt.height);
+
+			this.result_box.time_score_label.position.set(this.result_box.game_score_label.position.x,this.result_box.game_score_txt.position.y+this.result_box.time_score_label.height);
+			this.result_box.time_score_txt.position.set(this.result_box.game_score_label.position.x,this.result_box.time_score_label.position.y+this.result_box.time_score_txt.height);
+
+			this.restart_btn.position.set(-230,this.result_box.getBounds().height-30);
+			this.continue_btn.position.set(100,this.result_box.getBounds().height-30);
+
 
 		}
 	}
 
 	resetWrongAnswers() {
 		this.answers_wrong = 0;
+		this.wrong_slots.length = 0;
 	}
 
 	_setListeners() {
@@ -367,35 +742,55 @@ export default class GameScene {
 		this.answer_slot3.interactive = true;
 		this.answer_slot3.buttonMode = true;
 
+		this.restart_btn.interactive = true;
+		this.restart_btn.buttonMode = true;
+
 		this.answer_slot1.on("pointerup", this._answered.bind(this,0));
 		this.answer_slot2.on("pointerup", this._answered.bind(this,1));
 		this.answer_slot3.on("pointerup", this._answered.bind(this,2));
+		this.btn_continue.on("pointerup", this.continueAfterFail.bind(this));
+		this.restart_btn.on("pointerup", () => {
+			this.onRestartCb&&this.onRestartCb();
+		});
 	}
 
 	_answered(answerId) {
 		let q = this.questions[this.activeQuestionId];
 		let answerSlot = this[`answer_slot${answerId+1}`];
 
+		if(this.hand_animating || this.answers_wrong > 1) return;
+
+		this.hand_animating = true;
+
 		this.animateHand(answerSlot,() => {
 			if(q.images[answerId].correct) {
 				this._correctAnswer(answerSlot);
 			} else {
-				this._wrongAnswer(answerSlot);
+				this._wrongAnswer(answerSlot,answerId);
 			}
+			this.hand_animating = false;
 		});
 	}
 
 	_correctAnswer(answerSlot) {
 		if(this.answers_wrong >= 2) return;
+		this.saveAnswer(true,false);
 		this.changeScore(this.activeQuestionId, true);
 		this.app.loader.resources["sound_correct"].sound.play();
 		Generator.addTick1(answerSlot.getChildAt(0));
+		this.showStars(answerSlot);
 	}
 
-	async _wrongAnswer(answerSlot) {
-		this.app.loader.resources["sound_incorrect"].sound.play();
-		// Generator.addCross1(answerSlot.getChildAt(0));
-		++this.answers_wrong;
+	async _wrongAnswer(answerSlot,answerId, loadOnly=false) {
+		if(!loadOnly) {
+			this.app.loader.resources["sound_incorrect"].sound.play();
+			++this.answers_wrong;
+			this.wrong_slots.push(answerId);
+
+			if(this.answers_wrong > 1) {
+				this.saveAnswer(false,false);
+			}
+		}
 
 		let optionBox = answerSlot.getChildAt(0);
 		let animator = new Animator(optionBox.childObjects.image);
@@ -404,17 +799,17 @@ export default class GameScene {
 
 		await animator3.animate({
 			scale: this.scale
-		},200);
+		},loadOnly?0:200);
 
 		await animator.animate({
 			alpha: 0
-		}, 300);
+		}, loadOnly?0:300);
 		await animator2.animate({
 			scale: {
 				x: 1,
 				y: 1
 			}
-		}, 300);
+		}, loadOnly?0:300);
 
 		setTimeout(() => {
 			animator3.animate({
@@ -422,12 +817,79 @@ export default class GameScene {
 					x:0,
 					y:0
 				}
-			},200);
-		},500);
+			},loadOnly?0:200);
+		},loadOnly?0:500);
 
-		if(this.answers_wrong >= 2) {
+
+		if(!loadOnly && this.answers_wrong >= 2) {
+			this.showCorrectAnswer();
 			this.changeScore(this.activeQuestionId, false);
 		}
+	}
+
+	async continueAfterFail() {
+		let animator = new Animator(this.wrong_answer_inner_container);
+
+		await animator.animate({
+			scale: {
+				x:0,
+				y:0
+			}
+		},300).then(() => {
+			this.wrong_answer_container.visible = false;
+			this.nextQuestion();
+		});
+	}
+
+	async showCorrectAnswer(withSound=true) {
+		let animator = new Animator(this.wrong_answer_inner_container);
+		let word = this.questions[this.activeQuestionId].word;
+		let correctAnswer = this.findCorrectAnswer();
+
+
+		let article = /^([aeiouy])/i.test(word) ? "an" : "a";
+		let text = this.answer_bg._txt;
+		text.text = `this is ${article} ${word}`;
+		text.position.set(-text.width/2,-this.answer_bg.getLocalBounds().height + text.height/2);
+		this.correct_answer_image.set_texture(Texture.from(correctAnswer.url));
+
+		this.wrong_answer_inner_container.scale.set(0,0);
+		this.wrong_answer_container.visible = true;
+
+		await animator.animate({
+			scale: {
+				x:1,
+				y:1
+			}
+		},300);
+
+		withSound&&this.audio.play();
+
+	}
+
+	findCorrectAnswer() {
+		let question = this.questions[this.activeQuestionId];
+		for(let image of  question.images) {
+			if(image.correct) return image;
+		}
+	}
+
+	saveAnswer(success,f_timeout) {
+		let time = f_timeout ? 60 : Math.round((Date.now() - this.time_started)/1000);
+		let question = this.questions[this.activeQuestionId];
+		this.final_data[this.activeQuestionId] = {
+			word: question.word,
+			miss_count: this.answers_wrong,
+			time,
+			f_timeout
+		};
+
+		this.updateScore();
+	}
+
+	updateScore() {
+		let scores = this.calculateScores();
+		this.score_text._txt.text = (scores.time_score+scores.game_score)+"";
 	}
 
 	async animateHand(answerSlot, cb) {
@@ -484,7 +946,7 @@ export default class GameScene {
 					x: this.stone.scale.x * 0.5,
 					y: this.stone.scale.y * 0.5
 				}
-			},300);
+			},200);
 
 			this.stone.visible = false;
 			this.stone.scale.set(stoneScale.x, stoneScale.y);
@@ -502,9 +964,10 @@ export default class GameScene {
 	}
 
 	async changeScore(scoreId, isCorrect) {
-
 		this.timeAnimator.stop();
 		this.timeout&&clearTimeout(this.timeout);
+		this.time_started = 0;
+
 		let score = this.scores[scoreId];
 
 		let animator = new Animator(score);
@@ -528,17 +991,263 @@ export default class GameScene {
 			scale
 		},400);
 
-		this.nextQuestion();
+		if(isCorrect)
+			this.nextQuestion();
 	}
 
 	start() {
-		this.timeAnimator = new Animator(this.timer_bar);
-
+		this.started = true;
+		this.final_data.length = 0;
+		this._run_idle = true;
 		this.displayQuestion();
 	}
 
-	end() {
+	idleAnimation() {
+		let animators = [];
+		animators[0] = new Animator(this.behind_monkey1);
+		animators[1] = new Animator(this.behind_monkey2);
+		animators[2] = new Animator(this.behind_monkey3);
+		let index = 0;
+
+		let animations = [
+			async () => {
+				await animators[0].animate({
+					position: {
+						y: animators[0].sprite.position.y - 100
+					}
+				},300);
+				await this.wait(2000);
+				await animators[0].animate({
+					position: {
+						y: animators[0].sprite.position.y + 100
+					}
+				},300);
+			},
+			async () => {
+				await animators[1].animate({
+					position: {
+						y: animators[1].sprite.position.y - 100
+					}
+				},300);
+				await this.wait(2000);
+				await animators[1].animate({
+					position: {
+						y: animators[1].sprite.position.y + 100
+					}
+				},300);
+			},
+			async () => {
+				await animators[2].animate({
+					position: {
+						x: animators[2].sprite.position.x+100,
+						y: animators[2].sprite.position.y - 100
+					}
+				},300);
+				await this.wait(2000);
+				await animators[2].animate({
+					position: {
+						x: animators[2].sprite.position.x-100,
+						y: animators[2].sprite.position.y + 100
+					}
+				},300);
+			}
+		];
+
+		setInterval(() => {
+			let i = ++index%3;
+
+			if(this._run_idle) {
+				animations[i]();
+			}
+		},7000);
+	}
+
+	async wait(millis) {
+		return new Promise((resolve) => {
+			setTimeout(resolve,millis);
+		});
+	}
+
+	async end() {
+
+		this.postData();
+
+		let container_animator = new Animator(this.result_inner_container);
+		let animator_star1 = new Animator(this.result_box.stars_container.getChildAt(0));
+		let animator_star2 = new Animator(this.result_box.stars_container.getChildAt(1));
+		let animator_star3 = new Animator(this.result_box.stars_container.getChildAt(2));
+		let animator_score_label = new Animator(this.result_box.your_score_label);
+		let animator_score_txt = new Animator(this.result_box.your_score_txt);
+
 		this.app.loader.resources["sound_completed"].sound.play();
+
+		this.result_inner_container.scale = this.result_box.stars_container.getChildAt(0).scale = this.result_box.stars_container.getChildAt(1).scale
+		= this.result_box.stars_container.getChildAt(2).scale = this.result_box.your_score_label.scale = this.result_box.your_score_txt.scale = new Point(0,0);
+
+		this.result_container.visible = true;
+
+		let scores = this.calculateScores();
+
+		this.result_box.time_score_txt.text = Math.round(scores.time_score).toString();
+		this.result_box.game_score_txt.text = Math.round(scores.game_score).toString();
+		this.result_box.your_score_txt.text = Math.round(scores.time_score+scores.game_score).toString();
+
+		let star_2_texture = this.app.loader.resources["score_star2"].texture;
+		let star_texture = this.app.loader.resources["score_star"].texture;
+
+		let correctPercentage = scores.game_score/scores.max_game_score;
+
+		animator_star1.sprite.texture = correctPercentage > 0.3 ? star_texture : star_2_texture;
+		animator_star2.sprite.texture = correctPercentage >= 0.6 ? star_texture : star_2_texture;
+		animator_star3.sprite.texture = correctPercentage >= 0.8 ? star_texture : star_2_texture;
+
+		await container_animator.animate({
+			scale: {
+				x:1,
+				y:1
+			}
+		},300);
+
+		await animator_star1.animate({
+			scale: {
+				x:animator_star1.sprite.max_scale,
+				y:animator_star1.sprite.max_scale
+			}
+		},300);
+		await animator_star2.animate({
+			scale: {
+				x:animator_star2.sprite.max_scale,
+				y:animator_star2.sprite.max_scale
+			}
+		},300);
+		await animator_star3.animate({
+			scale: {
+				x:animator_star3.sprite.max_scale,
+				y:animator_star3.sprite.max_scale
+			}
+		},300);
+
+		await this.wait(500);
+
+		await animator_score_label.animate({
+			scale: {
+				x:1,
+				y:1
+			}
+		},200);
+
+		await this.wait(200);
+
+		await animator_score_txt.animate({
+			scale: {
+				x:1,
+				y:1
+			}
+		},200);
+
+	}
+
+	postData() {
+
+	}
+
+	calculateScores() {
+		let time_score = 0, game_score = 0;
+		for(let data of this.final_data) {
+			let isCorrect = data.miss_count < 2 && !data.f_timeout;
+			if(isCorrect) {
+				game_score+=data.miss_count ? 500 : 1000;
+				time_score+=Math.round(((60 -data.time)/5))*100;
+			}
+		}
+
+		let max_game_score = 1000*this.final_data.length;
+
+		return {time_score,game_score,max_game_score};
+	}
+
+	showStars(answerSlot) {
+		let bounds = answerSlot.getBounds();
+		let stars = [], animators = [];
+		stars.push(new Sprite(this.app.loader.resources["star"].texture));
+		stars.push(new Sprite(this.app.loader.resources["star2"].texture));
+		stars.push(new Sprite(this.app.loader.resources["star"].texture));
+		stars.push(new Sprite(this.app.loader.resources["star2"].texture));
+		stars.push(new Sprite(this.app.loader.resources["star"].texture));
+		stars.push(new Sprite(this.app.loader.resources["star2"].texture));
+		stars.push(new Sprite(this.app.loader.resources["star2"].texture));
+		stars.push(new Sprite(this.app.loader.resources["star2"].texture));
+
+		stars[0].isBig = stars[2].isBig = stars[4].isBig = true;
+
+		let positions = [
+			[-bounds.width/2, -bounds.height/2],
+			[bounds.width/2-5,bounds.height/2-10],
+			[30,-50],
+			[50,60],
+			[-60,90],
+			[130, -100],
+			[-50,-30],
+			[-120,30]
+		];
+
+		let rotations = [
+			-2,
+			2,
+			-1,
+			1,
+			-2.5,
+			2.5,
+			2,
+			-2
+		];
+
+		let scale = new Point(0,0);
+		let scaleBig = new Point(0,0);
+		let anchor = new Point(0.5,0.5);
+
+		stars.forEach((star,i) => {
+			answerSlot.addChild(star);
+
+			star.scale = star.isBig ? scaleBig: scale;
+			star.anchor = anchor;
+			star.rotation = rotations[i];
+
+			star.position.set(positions[i][0],positions[i][1]);
+			animators.push(new Animator(star));
+
+		});
+
+		let newScale = new Point(2.2,2.2);
+		let newScaleBig = new Point(1,1);
+		animators.forEach(anim => {
+			let scale = anim.sprite.isBig ? newScaleBig : newScale;
+			let pos = {
+				x: anim.sprite.position.x*1.5,
+				y: anim.sprite.position.y*1.5
+			};
+
+			anim.animate({
+				scale: {
+					x: scale.x,
+					y: scale.y,
+				},
+				position: pos,
+				rotation: 0
+			},300).then(it => {
+				it.animate({
+					scale: {
+						x: 0,
+						y: 0
+					},
+					position: {
+						x: it.sprite.position.x*1.5,
+						y: it.sprite.position.y*1.5
+					},
+					// alpha: 0
+				},300);
+			})
+		});
 	}
 
 	async nextQuestion() {
@@ -555,6 +1264,8 @@ export default class GameScene {
 		} else {
 			this.end();
 		}
+
+		console.log(this.final_data);
 	}
 
 	activateQuestion(qId) {
@@ -586,8 +1297,8 @@ export default class GameScene {
 
 	}
 
-	async displayQuestion(cb) {
-		this.timer_bar.scale.set(0,1);
+	async displayQuestion(cb, fast=false) {
+		this.timer_bar.scale.set(this.saved_scale || 0,1);
 
 		let animation1 = new Animator(this.answer_slot1);
 		let animation2 = new Animator(this.answer_slot2);
@@ -600,21 +1311,21 @@ export default class GameScene {
 				x: this.question_container.position.x,
 				y: this.question_container.position.y - (this.question_container.y_show)
 			}
-		}, 300);
+		}, fast?0:300);
 		await animation1.animate({
 			scale: {
 				x: 0.9,
 				y: 0.9
 			},
 			rotation: 360
-		},500);
+		},fast?0:500);
 		await animation2.animate({
 			scale: {
 				x: 0.9,
 				y: 0.9
 			},
 			rotation: 360
-		},500);
+		},fast?0:500);
 		this.audio.play();
 		await animation3.animate({
 			scale: {
@@ -622,14 +1333,19 @@ export default class GameScene {
 				y: 0.9
 			},
 			rotation: 360
-		},500);
+		},fast?0:500);
 
+		if(!this.time_started) this.time_started = Date.now();
+		let time = 60000 - (Date.now() - this.time_started);
 		this.timeAnimator.animate({
 			scale: {
 				x: 1
 			}
-		}, 60000).then(() => {
+		}, time).then(() => {
+			console.log("Finished");
+			this.saveAnswer(false, true);
 			this.changeScore(this.activeQuestionId, false);
+			this.nextQuestion();
 		});
 
 		this.timeout = setTimeout(() => {
