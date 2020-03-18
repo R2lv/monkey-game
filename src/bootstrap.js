@@ -79,14 +79,21 @@ export default class Bootstrap {
 				.add("game_result_bg_h", "assets/game_result_bg_h.png")
 				.add("score_star", "assets/ScoreStar.png")
 				.add("score_star2", "assets/ScoreStar2.png")
-				.add("restart_btn", "assets/restart_btn.png");
+				.add("happy_monkey", "assets/happy_monkey.png")
+				.add("confused_monkey", "assets/confused_monkey.png")
+				.add("restart_btn", "assets/restart_btn.png")
+				.add("yes_btn", "assets/yes_btn.png")
+				.add("no_btn", "assets/no_btn.png")
+				.add("quit_bg", "assets/quit_bg.png");
 
 			this.app.loader.add("sound_button", "assets/sounds/button.mp3")
 				.add("sound_correct", "assets/sounds/correct.mp3")
 				.add("sound_incorrect", "assets/sounds/try-again.mp3")
 				.add("sound_throw", "assets/sounds/throw.mp3")
 				.add("timeout", "assets/sounds/timeout.mp3")
-				.add("sound_completed", "assets/sounds/game-completed.mp3");
+				.add("sound_completed", "assets/sounds/game-completed.mp3")
+				.add("monkey_celebration", "assets/sounds/monkey-celebration.wav")
+				.add("correct_dialog", "assets/sounds/correct-dialog.wav");
 
 		}
 

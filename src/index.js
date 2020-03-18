@@ -8,7 +8,7 @@ window.PIXI = PIXI;
 require('pixi-layers');
 
 const app = new Application({
-	antialias: false,
+	antialias: true,
 	resizeTo: window
 });
 
